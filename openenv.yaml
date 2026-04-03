@@ -1,11 +1,119 @@
-name: email-triage-env
+name: email-triage-openenv
 version: 1.0.0
+description: >
+  An OpenEnv environment that benchmarks AI agents on real-world email triage.
+  Agents must classify urgency, categorize emails, extract key entities (sender
+  name, deadline, sentiment), and draft professional replies — mirroring what a
+  human support or operations worker does dozens of times per day.
+
+author: OpenEnv Submission
+license: MIT
+
 tasks:
   - name: classify-urgency
     difficulty: easy
+    max_steps: 1
+    description: >
+      Given a raw email, classify its urgency level (urgent/normal/low/spam)
+      and business category (billing/technical/sales/hr/legal/general/spam).
+    reward_range: [0.0, 1.0]
+    success_threshold: 0.6
+
   - name: classify-and-extract
     difficulty: medium
+    max_steps: 2
+    description: >
+      Classify urgency and category, then extract structured entities:
+      sender name (from signature), deadline (if present), and sentiment.
+    reward_range: [0.0, 1.0]
+    success_threshold: 0.7
+
   - name: full-triage
     difficulty: hard
-observation_space: ...
-action_space: ...
+    max_steps: 3
+    description: >
+      Complete email triage: classify urgency/category, extract all entities,
+      and draft a contextually appropriate professional reply.
+    reward_range: [0.0, 1.0]
+    success_threshold: 0.75
+
+observation_space:
+  type: object
+  description: Structured email content plus task context and step feedback
+  fields:
+    - name: email.id
+      type: string
+    - name: email.subject
+      type: string
+    - name: email.sender
+      type: string
+    - name: email.body
+      type: string
+    - name: email.received_at
+      type: string (ISO-8601)
+    - name: email.has_attachment
+      type: boolean
+    - name: email.thread_length
+      type: integer
+    - name: task_name
+      type: string
+    - name: step
+      type: integer
+    - name: max_steps
+      type: integer
+    - name: last_feedback
+      type: string
+    - name: confirmed_fields
+      type: list[string]
+    - name: context_hint
+      type: string
+
+action_space:
+  type: object
+  description: Structured triage decision submitted by the agent
+  fields:
+    - name: urgency
+      type: enum[urgent, normal, low, spam]
+      required_for: [classify-urgency, classify-and-extract, full-triage]
+    - name: category
+      type: enum[billing, technical, sales, hr, legal, general, spam]
+      required_for: [classify-urgency, classify-and-extract, full-triage]
+    - name: sender_name
+      type: string | null
+      required_for: [classify-and-extract, full-triage]
+    - name: deadline
+      type: string | null
+      required_for: [classify-and-extract, full-triage]
+    - name: sentiment
+      type: enum[positive, neutral, negative, angry] | null
+      required_for: [classify-and-extract, full-triage]
+    - name: reply_subject
+      type: string | null
+      required_for: [full-triage]
+    - name: reply_body
+      type: string | null
+      required_for: [full-triage]
+    - name: reasoning
+      type: string | null
+      required_for: []
+
+reward:
+  type: float
+  range: [0.0, 1.0]
+  description: >
+    Weighted sum of field-level accuracy scores. Partial credit awarded for
+    fuzzy matches on names and dates. Reply drafts scored on keyword coverage,
+    tone, length, and greeting presence. Small penalty for wasted steps.
+
+endpoints:
+  reset: POST /reset
+  step:  POST /step
+  state: GET  /state
+  health: GET /health
+  tasks: GET /tasks
+
+runtime:
+  language: python
+  version: "3.11"
+  framework: fastapi
+  port: 7860
