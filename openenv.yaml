@@ -1,0 +1,11 @@
+name: email-triage-env
+version: 1.0.0
+tasks:
+  - name: classify-urgency
+    difficulty: easy
+  - name: classify-and-extract
+    difficulty: medium
+  - name: full-triage
+    difficulty: hard
+observation_space: ...
+action_space: ...
