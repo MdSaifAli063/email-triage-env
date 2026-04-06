@@ -3,7 +3,6 @@
 An **OpenEnv-compliant** benchmark environment for training and evaluating AI agents on real-world **email triage** — the task of classifying, prioritizing, extracting information from, and replying to emails. This is one of the most common and high-value tasks performed by knowledge workers every day.
 
 ---
----
 title: Email Triage OpenEnv
 emoji: 📧
 colorFrom: blue
